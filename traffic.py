@@ -10,12 +10,14 @@ class ReportTrafficHandler(tornado.web.RequestHandler):
     def post(self):
         request_body = tornado.escape.json_decode(self.request.body)
         area_name = request_body['area']
+        traffic_list.append(area_name)
         for client in client_list:
             client.write_message({"traffic":area_name})
         
 
 
 client_list = [] #Client List
+traffic_list = []
 
 class TrafficSocketHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
@@ -23,6 +25,8 @@ class TrafficSocketHandler(tornado.websocket.WebSocketHandler):
     
     def open(self):
         print("New Client")
+        for area in traffic_list:
+            self.write_message(area)
         client_list.append(self)
     def on_message(self, msg):
         pass
