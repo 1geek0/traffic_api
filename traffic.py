@@ -10,10 +10,22 @@ class ReportTrafficHandler(tornado.web.RequestHandler):
     def post(self):
         request_body = tornado.escape.json_decode(self.request.body)
         area_name = request_body['area']
-        traffic_list.append(area_name)
+        if area_name not in traffic_list:
+            traffic_list.append(area_name)
         for client in client_list:
-            client.write_message({"traffic":area_name})
+            client.write_message({"traffic_add":area_name})
+        print(traffic_list)
         
+class RemoveHandler(tornado.web.RequestHandler):
+    def post(self):
+        request_body = tornado.escape.json_decode(self.request.body)
+        area_name = request_body['area']
+        if area_name in traffic_list:
+            traffic_list.remove(area_name)
+        for client in client_list:
+            client.write_message({"traffic_remove":area_name})
+        print(traffic_list)
+    
 
 
 client_list = [] #Client List
@@ -26,7 +38,7 @@ class TrafficSocketHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         print("New Client")
         for area in traffic_list:
-            self.write_message(area)
+            self.write_message({"traffic_add":area})
         client_list.append(self)
     def on_message(self, msg):
         pass
@@ -38,7 +50,8 @@ if __name__ == '__main__':
     app = tornado.web.Application(
         handlers=[
             (r"/report", ReportTrafficHandler), 
-            (r"/trafficsock", TrafficSocketHandler)])
+            (r"/trafficsock", TrafficSocketHandler),
+            (r"/remove", RemoveHandler)])
     http_server = tornado.httpserver.HTTPServer(app)
     http_server.listen(8888)
     tornado.ioloop.IOLoop.instance().start()
